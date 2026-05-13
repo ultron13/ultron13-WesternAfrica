@@ -11,7 +11,7 @@ primary_region = "jnb"
   WHATSAPP_PROVIDER = "clickatell"
 
 [processes]
-  app = "./scripts/migrate-and-start.sh"
+  app = "sh ./scripts/migrate-and-start.sh"
   worker = "node dist/worker.js"
 
 [http_service]
