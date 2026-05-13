@@ -1,0 +1,1288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  OPS
+  FIELD_AGENT
+  FARMER
+  BUYER
+  DRIVER
+  FINANCE
+  GOVERNMENT_BUYER
+}
+
+enum OrganizationType {
+  FARM
+  COOPERATIVE
+  RESTAURANT
+  HOTEL
+  CATERER
+  FOOD_PROCESSOR
+  GOVERNMENT
+  LOGISTICS_PARTNER
+  FARMCONNECT
+}
+
+enum ComplianceStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum AddressType {
+  FARM
+  COLLECTION_POINT
+  DELIVERY
+  BILLING
+  HUB
+}
+
+enum ProduceListingStatus {
+  DRAFT
+  ACTIVE
+  RESERVED
+  COLLECTED
+  EXHAUSTED
+  SUSPENDED
+  EXPIRED
+  CANCELLED
+}
+
+enum DemandStatus {
+  DRAFT
+  ACTIVE
+  MATCHING
+  QUOTED
+  CONVERTED
+  EXPIRED
+  CANCELLED
+}
+
+enum OrderStatus {
+  DRAFT
+  QUOTED
+  CONFIRMED
+  ALLOCATED
+  IN_COLLECTION
+  IN_TRANSIT
+  DELIVERED
+  ACCEPTED
+  INVOICED
+  PAID
+  CLOSED
+  CANCELLED
+  PARTIALLY_FULFILLED
+  DISPUTED
+  REFUNDED
+}
+
+enum ShipmentStatus {
+  PLANNED
+  ASSIGNED
+  COLLECTING
+  AT_HUB
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CLOSED
+  DELAYED
+  FAILED
+  RETURNED
+}
+
+enum ShipmentStopType {
+  COLLECTION
+  HUB
+  DELIVERY
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  SETTLED
+  RECONCILED
+  FAILED
+  REFUNDED
+  CHARGEBACK
+}
+
+enum PayoutStatus {
+  PENDING
+  SCHEDULED
+  SENT
+  SETTLED
+  FAILED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  SENT
+  PAID
+  VOID
+  OVERDUE
+}
+
+enum QualityInspectionStatus {
+  PENDING
+  PASSED
+  FAILED
+  CONDITIONAL
+}
+
+enum DisputeStatus {
+  OPEN
+  INVESTIGATING
+  CREDIT_APPROVED
+  REFUND_APPROVED
+  REJECTED
+  CLOSED
+}
+
+enum WhatsAppConversationStatus {
+  OPEN
+  BOT_ACTIVE
+  HUMAN_HANDOFF
+  CLOSED
+}
+
+enum BotState {
+  START
+  IDENTIFY_CONTACT
+  SELECT_ROLE
+  INTENT_MENU
+  FARMER_LIST_PRODUCT
+  FARMER_LIST_QUANTITY
+  BUYER_ORDER_PRODUCT
+  BUYER_ORDER_QUANTITY
+  TRACK_DELIVERY
+  REPORT_QUALITY
+  CONFIRMATION
+  HUMAN_HANDOFF
+  DONE
+}
+
+enum EventOutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+  DEAD_LETTER
+}
+
+enum OrderAllocationStatus {
+  RESERVED
+  CONFIRMED
+  COLLECTED
+  DELIVERED
+  RELEASED
+  CANCELLED
+  DISPUTED
+}
+
+enum RouteBatchStatus {
+  DRAFT
+  OPTIMIZED
+  APPROVED
+  DISPATCHED
+  COMPLETED
+  CANCELLED
+}
+
+enum ContactPolicyViolationType {
+  PHONE_EXPOSED
+  DIRECT_PAYMENT_REQUEST
+  OFF_PLATFORM_MEETING
+  REPEATED_CONTACT_ATTEMPT
+  SUSPICIOUS_MESSAGE
+}
+
+enum ContactPolicyViolationStatus {
+  OPEN
+  REVIEWING
+  CONFIRMED
+  FALSE_POSITIVE
+  RESOLVED
+}
+
+enum ReliabilityEntityType {
+  FARMER
+  BUYER
+  CARRIER
+  FIELD_AGENT
+  PRODUCT
+}
+
+enum ReliabilitySignalType {
+  ON_TIME_DELIVERY
+  LATE_DELIVERY
+  QUALITY_ACCEPTED
+  QUALITY_REJECTED
+  ORDER_CANCELLED
+  PAYMENT_ON_TIME
+  PAYMENT_LATE
+  DISPUTE_OPENED
+  DISPUTE_RESOLVED
+  COLLECTION_NO_SHOW
+}
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum LedgerEntryStatus {
+  PENDING
+  POSTED
+  VOID
+}
+
+enum MessageThreadStatus {
+  OPEN
+  CLOSED
+  FLAGGED
+}
+
+enum SlaCheckpointStatus {
+  PENDING
+  HIT
+  MISSED
+  WAIVED
+}
+
+enum MatchDecisionOutcome {
+  PENDING
+  SUCCESS
+  FAILED
+  REJECTED
+  EXPIRED
+}
+
+enum CreditFacilityStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  CLOSED
+  DEFAULTED
+}
+
+enum CreditDrawdownStatus {
+  REQUESTED
+  APPROVED
+  DISBURSED
+  REPAID
+  DEFAULTED
+  REJECTED
+}
+
+enum RepaymentStatus {
+  SCHEDULED
+  PAID
+  OVERDUE
+  WAIVED
+}
+
+model User {
+  id              String            @id @default(uuid())
+  email           String?           @unique
+  phoneNumber     String?           @unique
+  fullName        String
+  role            UserRole
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  memberships     OrgMembership[]
+  auditLogs       AuditLog[]
+  qualityChecks   QualityInspection[] @relation("Inspector")
+}
+
+model Organization {
+  id                    String              @id @default(uuid())
+  type                  OrganizationType
+  name                  String
+  registrationNumber    String?
+  vatNumber             String?
+  bbbeeLevel            Int?
+  blackOwnershipPercent Decimal?            @db.Decimal(5, 2)
+  smallholderPercent    Decimal?            @db.Decimal(5, 2)
+  complianceStatus      ComplianceStatus    @default(PENDING)
+  reliabilityScore      Decimal             @default(0.75) @db.Decimal(5, 4)
+  paymentTermsDays      Int                 @default(0)
+  isActive              Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  memberships           OrgMembership[]
+  addresses             Address[]
+  contacts              Contact[]
+  documents             ComplianceDocument[]
+  farms                 Farm[]
+  collectionPoints      CollectionPoint[]
+  listings              ProduceListing[]    @relation("SupplierListings")
+  demands               BuyerDemand[]
+  buyerOrders           Order[]             @relation("BuyerOrders")
+  sellerOrderLines      OrderLine[]         @relation("SellerOrderLines")
+  sellerAllocations     OrderAllocation[]   @relation("SellerAllocations")
+  reliabilityScores     ReliabilityScore[]
+  reliabilitySignals    ReliabilitySignal[]
+  ledgerAccounts        LedgerAccount[]
+  creditFacilities      CreditFacility[]
+  invoices              Invoice[]
+  payouts               Payout[]
+  whatsappContacts      WhatsAppContact[]
+  contactAliases        ContactAlias[]
+  contactPolicyViolations ContactPolicyViolation[]
+  messageThreadsAsBuyer PlatformMessageThread[] @relation("BuyerMessageThreads")
+  messageThreadsAsSeller PlatformMessageThread[] @relation("SellerMessageThreads")
+}
+
+model OrgMembership {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String
+  role           UserRole
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([userId, organizationId, role])
+}
+
+model Address {
+  id             String       @id @default(uuid())
+  organizationId String
+  type           AddressType
+  line1          String
+  line2          String?
+  city           String
+  province       String
+  postalCode     String?
+  country        String       @default("South Africa")
+  latitude       Decimal?     @db.Decimal(10, 7)
+  longitude      Decimal?     @db.Decimal(10, 7)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model Contact {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  role           String?
+  phoneNumber    String?
+  email          String?
+  isPrimary      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model ComplianceDocument {
+  id             String           @id @default(uuid())
+  organizationId String
+  type           String
+  status         ComplianceStatus @default(SUBMITTED)
+  fileUrl        String
+  issuedAt       DateTime?
+  expiresAt      DateTime?
+  reviewedAt     DateTime?
+  rejectionReason String?
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+}
+
+model Corridor {
+  id              String       @id @default(uuid())
+  code            String       @unique
+  name            String
+  originProvince  String
+  destinationProvince String
+  defaultHubId    String?
+  minViableLoadKg Decimal      @default(1000) @db.Decimal(12, 3)
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  routePlans      RoutePlan[]
+  routeBatches    RouteBatch[]
+  shipments       Shipment[]
+}
+
+model ProductCategory {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  products  Product[]
+}
+
+model Product {
+  id              String           @id @default(uuid())
+  categoryId      String
+  name            String
+  unit            String           @default("kg")
+  zeroRatedVat    Boolean          @default(true)
+  coldChainRequired Boolean        @default(true)
+  shelfLifeDays   Int              @default(7)
+  createdAt       DateTime         @default(now())
+  category        ProductCategory  @relation(fields: [categoryId], references: [id])
+  grades          QualityGrade[]
+  perishabilityProfile ProductPerishabilityProfile?
+  listings        ProduceListing[]
+  demandLines     BuyerDemandLine[]
+  orderLines      OrderLine[]
+}
+
+model ProductPerishabilityProfile {
+  id                    String       @id @default(uuid())
+  productId             String       @unique
+  maxTransitHours       Int
+  idealTransitHours     Int
+  baseSpoilageRatePerHour Decimal    @db.Decimal(8, 6)
+  unrefrigeratedPenalty Decimal      @db.Decimal(8, 6)
+  temperatureMinC       Decimal?     @db.Decimal(5, 2)
+  temperatureMaxC       Decimal?     @db.Decimal(5, 2)
+  handlingNotes         String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  product               Product      @relation(fields: [productId], references: [id])
+}
+
+model QualityGrade {
+  id          String    @id @default(uuid())
+  productId   String
+  code        String
+  name        String
+  description String?
+  minScore    Int       @default(0)
+  product     Product   @relation(fields: [productId], references: [id])
+  listings    ProduceListing[]
+
+  @@unique([productId, code])
+}
+
+model Farm {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  hectares       Decimal?     @db.Decimal(12, 3)
+  primaryCrop    String?
+  addressId      String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  listings       ProduceListing[]
+}
+
+model CollectionPoint {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  addressId      String?
+  latitude       Decimal      @db.Decimal(10, 7)
+  longitude      Decimal      @db.Decimal(10, 7)
+  hasColdRoom    Boolean      @default(false)
+  capacityKg     Decimal?     @db.Decimal(12, 3)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  listings       ProduceListing[]
+}
+
+model ProduceListing {
+  id                String               @id @default(uuid())
+  supplierId        String
+  farmId            String?
+  productId         String
+  gradeId           String?
+  collectionPointId String
+  status            ProduceListingStatus @default(DRAFT)
+  quantityKg        Decimal              @db.Decimal(12, 3)
+  reservedKg        Decimal              @default(0) @db.Decimal(12, 3)
+  farmGatePricePerKg Decimal             @db.Decimal(12, 2)
+  harvestDate       DateTime
+  availableFrom     DateTime
+  availableUntil    DateTime
+  notes             String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  supplier          Organization         @relation("SupplierListings", fields: [supplierId], references: [id])
+  farm              Farm?                @relation(fields: [farmId], references: [id])
+  product           Product              @relation(fields: [productId], references: [id])
+  grade             QualityGrade?        @relation(fields: [gradeId], references: [id])
+  collectionPoint   CollectionPoint      @relation(fields: [collectionPointId], references: [id])
+  photos            PhotoAsset[]
+  inspections       QualityInspection[]
+  batchLines        AggregationBatchLine[]
+  orderLines        OrderLine[]
+  allocations       OrderAllocation[]
+  matchDecisions    MatchDecision[]
+
+  @@index([productId, status, availableFrom, availableUntil])
+}
+
+model BuyerDemand {
+  id             String            @id @default(uuid())
+  buyerId        String
+  status         DemandStatus      @default(DRAFT)
+  deliveryAddressId String?
+  deliveryLatitude Decimal?        @db.Decimal(10, 7)
+  deliveryLongitude Decimal?       @db.Decimal(10, 7)
+  deliveryWindowStart DateTime
+  deliveryWindowEnd DateTime
+  paymentTermsDays Int             @default(0)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  buyer          Organization      @relation(fields: [buyerId], references: [id])
+  lines          BuyerDemandLine[]
+  matchRuns      MatchingRun[]
+  orders         Order[]
+  matchDecisions MatchDecision[]
+}
+
+model BuyerDemandLine {
+  id             String       @id @default(uuid())
+  demandId       String
+  productId      String
+  requiredQuantityKg Decimal  @db.Decimal(12, 3)
+  acceptedGrades String[]
+  allowSubstitution Boolean   @default(false)
+  maxDeliveredPricePerKg Decimal @db.Decimal(12, 2)
+  createdAt      DateTime     @default(now())
+  demand         BuyerDemand  @relation(fields: [demandId], references: [id])
+  product        Product      @relation(fields: [productId], references: [id])
+  recommendations MatchRecommendation[]
+}
+
+model StandingOrder {
+  id             String       @id @default(uuid())
+  buyerId        String
+  productId      String
+  quantityKg     Decimal      @db.Decimal(12, 3)
+  frequency      String
+  preferredDeliveryDay Int?
+  maxDeliveredPricePerKg Decimal @db.Decimal(12, 2)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+}
+
+model MatchingRun {
+  id             String      @id @default(uuid())
+  demandId       String
+  status         String      @default("COMPLETED")
+  algorithmVersion String    @default("v1")
+  createdAt      DateTime    @default(now())
+  demand         BuyerDemand @relation(fields: [demandId], references: [id])
+  recommendations MatchRecommendation[]
+  decisions      MatchDecision[]
+}
+
+model MatchRecommendation {
+  id             String       @id @default(uuid())
+  matchingRunId  String
+  demandLineId   String
+  listingId      String
+  score          Decimal      @db.Decimal(8, 5)
+  quantityAvailableKg Decimal @db.Decimal(12, 3)
+  expectedDeliveredPricePerKg Decimal @db.Decimal(12, 2)
+  expectedGrossMarginPerKg Decimal @db.Decimal(12, 2)
+  explanation    Json
+  createdAt      DateTime     @default(now())
+  matchingRun    MatchingRun  @relation(fields: [matchingRunId], references: [id])
+  demandLine     BuyerDemandLine @relation(fields: [demandLineId], references: [id])
+}
+
+model MatchDecision {
+  id             String       @id @default(uuid())
+  matchingRunId  String?
+  orderId        String?
+  demandId       String?
+  listingId      String
+  score          Decimal      @db.Decimal(8, 5)
+  selected       Boolean      @default(false)
+  outcome        MatchDecisionOutcome @default(PENDING)
+  featureVector  Json
+  modelVersion   String       @default("rules-v3")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  matchingRun    MatchingRun? @relation(fields: [matchingRunId], references: [id])
+  demand         BuyerDemand? @relation(fields: [demandId], references: [id])
+  listing        ProduceListing @relation(fields: [listingId], references: [id])
+
+  @@index([orderId, selected, outcome])
+  @@index([listingId, outcome])
+  @@index([modelVersion, createdAt])
+}
+
+model AggregationBatch {
+  id             String       @id @default(uuid())
+  code           String       @unique
+  status         String       @default("PLANNED")
+  totalQuantityKg Decimal     @db.Decimal(12, 3)
+  weightedScore  Decimal      @db.Decimal(8, 5)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  lines          AggregationBatchLine[]
+  orderLines     OrderLine[]
+  shipment       Shipment?
+}
+
+model AggregationBatchLine {
+  id             String       @id @default(uuid())
+  batchId        String
+  listingId      String
+  reservedQuantityKg Decimal  @db.Decimal(12, 3)
+  expectedDeliveredPricePerKg Decimal @db.Decimal(12, 2)
+  score          Decimal      @db.Decimal(8, 5)
+  batch          AggregationBatch @relation(fields: [batchId], references: [id])
+  listing        ProduceListing @relation(fields: [listingId], references: [id])
+}
+
+model Order {
+  id             String       @id @default(uuid())
+  orderNumber    String       @unique
+  buyerId        String
+  demandId       String?
+  status         OrderStatus  @default(DRAFT)
+  subtotal       Decimal      @db.Decimal(12, 2)
+  buyerCommission Decimal     @default(0) @db.Decimal(12, 2)
+  sellerCommission Decimal    @default(0) @db.Decimal(12, 2)
+  vatAmount      Decimal      @default(0) @db.Decimal(12, 2)
+  total          Decimal      @db.Decimal(12, 2)
+  deliveryWindowStart DateTime
+  deliveryWindowEnd DateTime
+  confirmedAt    DateTime?
+  acceptedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  buyer          Organization @relation("BuyerOrders", fields: [buyerId], references: [id])
+  demand         BuyerDemand? @relation(fields: [demandId], references: [id])
+  lines          OrderLine[]
+  allocations    OrderAllocation[]
+  shipments      Shipment[]
+  payments       PaymentIntent[]
+  invoices       Invoice[]
+  disputes       Dispute[]
+  ledgerEntries  LedgerEntry[]
+  slaCheckpoints DeliverySlaCheckpoint[]
+}
+
+model OrderLine {
+  id             String       @id @default(uuid())
+  orderId        String
+  sellerId       String
+  productId      String
+  listingId      String?
+  aggregationBatchId String?
+  quantityKg     Decimal      @db.Decimal(12, 3)
+  farmGatePricePerKg Decimal  @db.Decimal(12, 2)
+  deliveredPricePerKg Decimal @db.Decimal(12, 2)
+  lineTotal      Decimal      @db.Decimal(12, 2)
+  order          Order        @relation(fields: [orderId], references: [id])
+  seller         Organization @relation("SellerOrderLines", fields: [sellerId], references: [id])
+  product        Product      @relation(fields: [productId], references: [id])
+  listing        ProduceListing? @relation(fields: [listingId], references: [id])
+  aggregationBatch AggregationBatch? @relation(fields: [aggregationBatchId], references: [id])
+  allocations    OrderAllocation[]
+}
+
+model OrderAllocation {
+  id             String       @id @default(uuid())
+  orderId        String
+  orderLineId    String?
+  listingId      String
+  sellerId       String
+  status         OrderAllocationStatus @default(RESERVED)
+  quantityKg     Decimal      @db.Decimal(12, 3)
+  farmGatePricePerKg Decimal  @db.Decimal(12, 2)
+  deliveredPricePerKg Decimal @db.Decimal(12, 2)
+  reservedAt     DateTime     @default(now())
+  confirmedAt    DateTime?
+  collectedAt    DateTime?
+  deliveredAt    DateTime?
+  releasedAt     DateTime?
+  releaseReason  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  order          Order        @relation(fields: [orderId], references: [id])
+  orderLine      OrderLine?   @relation(fields: [orderLineId], references: [id])
+  listing        ProduceListing @relation(fields: [listingId], references: [id])
+  seller         Organization @relation("SellerAllocations", fields: [sellerId], references: [id])
+
+  @@index([orderId, status])
+  @@index([listingId, status])
+  @@unique([orderId, listingId])
+}
+
+model Carrier {
+  id             String       @id @default(uuid())
+  organizationId String?
+  name           String
+  contactAlias   String?
+  refrigerated   Boolean      @default(false)
+  capacityKg     Decimal      @db.Decimal(12, 3)
+  baseFee        Decimal      @db.Decimal(12, 2)
+  costPerKm      Decimal      @db.Decimal(12, 2)
+  reliabilityScore Decimal    @default(0.75) @db.Decimal(5, 4)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  routeBatches   RouteBatch[]
+}
+
+model RouteBatch {
+  id             String       @id @default(uuid())
+  code           String       @unique
+  corridorId     String
+  carrierId      String?
+  status         RouteBatchStatus @default(DRAFT)
+  plannedDate    DateTime
+  coldChainRequired Boolean   @default(true)
+  totalQuantityKg Decimal     @db.Decimal(12, 3)
+  estimatedDistanceKm Decimal @default(0) @db.Decimal(12, 2)
+  estimatedCost  Decimal      @default(0) @db.Decimal(12, 2)
+  estimatedCostPerKg Decimal  @default(0) @db.Decimal(12, 2)
+  deliveryWindowPenalty Decimal @default(0) @db.Decimal(8, 5)
+  optimizerVersion String     @default("v2")
+  optimizerTrace   Json?
+  approvedAt       DateTime?
+  dispatchedAt     DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  corridor         Corridor   @relation(fields: [corridorId], references: [id])
+  carrier          Carrier?   @relation(fields: [carrierId], references: [id])
+  routePlans       RoutePlan[]
+  shipments        Shipment[]
+  slaCheckpoints    DeliverySlaCheckpoint[]
+
+  @@index([corridorId, plannedDate, status])
+}
+
+model RoutePlan {
+  id             String       @id @default(uuid())
+  corridorId     String
+  routeBatchId   String?
+  carrierId      String?
+  plannedDate    DateTime
+  totalQuantityKg Decimal     @db.Decimal(12, 3)
+  estimatedDistanceKm Decimal @db.Decimal(12, 2)
+  estimatedCost  Decimal      @db.Decimal(12, 2)
+  estimatedCostPerKg Decimal  @db.Decimal(12, 2)
+  slaRiskScore   Decimal      @db.Decimal(8, 5)
+  createdAt      DateTime     @default(now())
+  corridor       Corridor     @relation(fields: [corridorId], references: [id])
+  routeBatch     RouteBatch?  @relation(fields: [routeBatchId], references: [id])
+  shipments      Shipment[]
+}
+
+model Shipment {
+  id             String       @id @default(uuid())
+  shipmentNumber String       @unique
+  orderId        String?
+  aggregationBatchId String?  @unique
+  corridorId     String
+  routeBatchId   String?
+  routePlanId    String?
+  status         ShipmentStatus @default(PLANNED)
+  coldChainRequired Boolean   @default(true)
+  assignedCarrierName String?
+  vehicleRegistration String?
+  plannedPickupAt DateTime?
+  plannedDeliveryAt DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  order          Order?       @relation(fields: [orderId], references: [id])
+  aggregationBatch AggregationBatch? @relation(fields: [aggregationBatchId], references: [id])
+  corridor       Corridor     @relation(fields: [corridorId], references: [id])
+  routeBatch     RouteBatch?  @relation(fields: [routeBatchId], references: [id])
+  routePlan      RoutePlan?   @relation(fields: [routePlanId], references: [id])
+  stops          ShipmentStop[]
+  gpsPings       GpsPing[]
+  etaSnapshots   EtaSnapshot[]
+  coldChainAssessments ColdChainAssessment[]
+  slaCheckpoints DeliverySlaCheckpoint[]
+
+  @@index([corridorId, status, plannedDeliveryAt])
+}
+
+model ShipmentStop {
+  id             String       @id @default(uuid())
+  shipmentId     String
+  type           ShipmentStopType
+  sequence       Int
+  name           String
+  latitude       Decimal      @db.Decimal(10, 7)
+  longitude      Decimal      @db.Decimal(10, 7)
+  windowStart    DateTime
+  windowEnd      DateTime
+  arrivedAt      DateTime?
+  completedAt    DateTime?
+  proofUrl       String?
+  notes          String?
+  shipment       Shipment     @relation(fields: [shipmentId], references: [id])
+
+  @@unique([shipmentId, sequence])
+}
+
+model QualityInspection {
+  id             String       @id @default(uuid())
+  listingId      String?
+  shipmentId     String?
+  inspectorId    String?
+  status         QualityInspectionStatus @default(PENDING)
+  gradeCode      String?
+  score          Int?
+  notes          String?
+  inspectedAt    DateTime     @default(now())
+  listing        ProduceListing? @relation(fields: [listingId], references: [id])
+  inspector      User?        @relation("Inspector", fields: [inspectorId], references: [id])
+  photos         PhotoAsset[]
+}
+
+model PhotoAsset {
+  id             String       @id @default(uuid())
+  listingId      String?
+  qualityInspectionId String?
+  url            String
+  contentType    String?
+  checksum       String?
+  caption        String?
+  createdAt      DateTime     @default(now())
+  listing        ProduceListing? @relation(fields: [listingId], references: [id])
+  qualityInspection QualityInspection? @relation(fields: [qualityInspectionId], references: [id])
+}
+
+model Dispute {
+  id             String       @id @default(uuid())
+  orderId        String
+  status         DisputeStatus @default(OPEN)
+  reason         String
+  description    String?
+  requestedCreditAmount Decimal? @db.Decimal(12, 2)
+  approvedCreditAmount Decimal? @db.Decimal(12, 2)
+  openedAt       DateTime     @default(now())
+  closedAt       DateTime?
+  order          Order        @relation(fields: [orderId], references: [id])
+}
+
+model ReliabilityScore {
+  id                    String       @id @default(uuid())
+  organizationId        String
+  entityType            ReliabilityEntityType
+  score                 Decimal      @db.Decimal(5, 4)
+  deliverySuccessRate   Decimal      @default(0) @db.Decimal(5, 4)
+  qualityAcceptanceRate Decimal      @default(0) @db.Decimal(5, 4)
+  paymentTimelinessRate Decimal      @default(0) @db.Decimal(5, 4)
+  cancellationRate      Decimal      @default(0) @db.Decimal(5, 4)
+  disputeRate           Decimal      @default(0) @db.Decimal(5, 4)
+  sampleSize            Int          @default(0)
+  calculatedAt          DateTime     @default(now())
+  metadata              Json?
+  organization          Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([entityType, score, calculatedAt])
+}
+
+model ReliabilitySignal {
+  id             String       @id @default(uuid())
+  organizationId String
+  type           ReliabilitySignalType
+  weight         Decimal      @db.Decimal(8, 5)
+  sourceType     String
+  sourceId       String
+  occurredAt     DateTime     @default(now())
+  metadata       Json?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, type, sourceType, sourceId])
+  @@index([organizationId, occurredAt])
+}
+
+model ColdChainAssessment {
+  id                    String       @id @default(uuid())
+  shipmentId            String
+  productId             String?
+  maxTransitHours       Decimal      @db.Decimal(8, 2)
+  estimatedTransitHours Decimal      @db.Decimal(8, 2)
+  refrigerated          Boolean
+  spoilageProbability   Decimal      @db.Decimal(5, 4)
+  riskScore             Decimal      @db.Decimal(5, 4)
+  modelVersion          String       @default("spoilage-v1")
+  calculatedAt          DateTime     @default(now())
+  metadata              Json?
+  shipment              Shipment     @relation(fields: [shipmentId], references: [id])
+
+  @@index([shipmentId, riskScore])
+}
+
+model DeliverySlaCheckpoint {
+  id             String       @id @default(uuid())
+  orderId        String?
+  shipmentId     String?
+  routeBatchId   String?
+  checkpointType String
+  dueAt          DateTime
+  completedAt    DateTime?
+  status         SlaCheckpointStatus @default(PENDING)
+  delayMinutes   Int?
+  createdAt      DateTime     @default(now())
+  order          Order?       @relation(fields: [orderId], references: [id])
+  shipment       Shipment?    @relation(fields: [shipmentId], references: [id])
+  routeBatch     RouteBatch?  @relation(fields: [routeBatchId], references: [id])
+
+  @@index([status, dueAt])
+  @@index([shipmentId, checkpointType])
+}
+
+model PaymentIntent {
+  id             String       @id @default(uuid())
+  orderId        String
+  provider       String
+  providerReference String?   @unique
+  status         PaymentStatus @default(PENDING)
+  amount         Decimal      @db.Decimal(12, 2)
+  currency       String       @default("ZAR")
+  idempotencyKey String       @unique
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  order          Order        @relation(fields: [orderId], references: [id])
+}
+
+model LedgerAccount {
+  id             String       @id @default(uuid())
+  organizationId String?
+  code           String       @unique
+  name           String
+  type           LedgerAccountType
+  currency       String       @default("ZAR")
+  isSystem       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  debitEntries   LedgerEntry[] @relation("DebitAccountEntries")
+  creditEntries  LedgerEntry[] @relation("CreditAccountEntries")
+}
+
+model LedgerEntry {
+  id              String       @id @default(uuid())
+  transactionId   String
+  debitAccountId  String
+  creditAccountId String
+  orderId         String?
+  status          LedgerEntryStatus @default(POSTED)
+  amount          Decimal      @db.Decimal(12, 2)
+  currency        String       @default("ZAR")
+  reference       String
+  description     String?
+  idempotencyKey  String       @unique
+  postedAt        DateTime     @default(now())
+  voidedAt        DateTime?
+  metadata        Json?
+  debitAccount    LedgerAccount @relation("DebitAccountEntries", fields: [debitAccountId], references: [id])
+  creditAccount   LedgerAccount @relation("CreditAccountEntries", fields: [creditAccountId], references: [id])
+  order           Order?       @relation(fields: [orderId], references: [id])
+
+  @@index([transactionId])
+  @@index([reference])
+  @@index([postedAt])
+}
+
+model CreditFacility {
+  id             String       @id @default(uuid())
+  organizationId String
+  status         CreditFacilityStatus @default(DRAFT)
+  limitAmount    Decimal      @db.Decimal(12, 2)
+  availableAmount Decimal     @db.Decimal(12, 2)
+  interestRateAnnual Decimal  @default(0) @db.Decimal(7, 4)
+  currency       String       @default("ZAR")
+  riskScore      Decimal      @default(0.5) @db.Decimal(5, 4)
+  approvedAt     DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  drawdowns      CreditDrawdown[]
+
+  @@index([organizationId, status])
+}
+
+model CreditDrawdown {
+  id             String       @id @default(uuid())
+  facilityId     String
+  orderId        String?
+  status         CreditDrawdownStatus @default(REQUESTED)
+  amount         Decimal      @db.Decimal(12, 2)
+  purpose        String
+  requestedAt    DateTime     @default(now())
+  approvedAt     DateTime?
+  disbursedAt    DateTime?
+  repaidAt       DateTime?
+  facility       CreditFacility @relation(fields: [facilityId], references: [id])
+  repayments     CreditRepayment[]
+
+  @@index([facilityId, status])
+}
+
+model CreditRepayment {
+  id             String       @id @default(uuid())
+  drawdownId     String
+  status         RepaymentStatus @default(SCHEDULED)
+  dueAt          DateTime
+  paidAt         DateTime?
+  amount         Decimal      @db.Decimal(12, 2)
+  reference      String?
+  drawdown       CreditDrawdown @relation(fields: [drawdownId], references: [id])
+
+  @@index([status, dueAt])
+}
+
+model Payout {
+  id             String       @id @default(uuid())
+  organizationId String
+  provider       String
+  providerReference String?   @unique
+  status         PayoutStatus @default(PENDING)
+  amount         Decimal      @db.Decimal(12, 2)
+  currency       String       @default("ZAR")
+  scheduledFor   DateTime
+  settledAt      DateTime?
+  idempotencyKey String       @unique
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model Invoice {
+  id             String       @id @default(uuid())
+  invoiceNumber  String       @unique
+  organizationId String
+  orderId        String?
+  status         InvoiceStatus @default(DRAFT)
+  subtotal       Decimal      @db.Decimal(12, 2)
+  vatAmount      Decimal      @db.Decimal(12, 2)
+  total          Decimal      @db.Decimal(12, 2)
+  issuedAt       DateTime?
+  dueAt          DateTime?
+  pdfUrl         String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  order          Order?       @relation(fields: [orderId], references: [id])
+}
+
+model WhatsAppContact {
+  id             String       @id @default(uuid())
+  organizationId String?
+  phoneNumber    String       @unique
+  displayName    String?
+  role           UserRole?
+  optInAt        DateTime?
+  optOutAt       DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  conversations  WhatsAppConversation[]
+  aliases        ContactAlias[]
+}
+
+model ContactAlias {
+  id             String       @id @default(uuid())
+  organizationId String?
+  whatsappContactId String?
+  aliasType      String
+  aliasValue     String       @unique
+  realValueHash  String?
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  whatsappContact WhatsAppContact? @relation(fields: [whatsappContactId], references: [id])
+}
+
+model WhatsAppConversation {
+  id             String       @id @default(uuid())
+  contactId      String
+  status         WhatsAppConversationStatus @default(BOT_ACTIVE)
+  currentState   BotState     @default(START)
+  context        Json         @default("{}")
+  handoffAt      DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  contact        WhatsAppContact @relation(fields: [contactId], references: [id])
+  messages       WhatsAppMessage[]
+}
+
+model WhatsAppMessage {
+  id             String       @id @default(uuid())
+  conversationId String
+  provider       String
+  providerMessageId String?
+  direction      String
+  fromNumber     String
+  toNumber       String
+  text           String?
+  mediaUrl       String?
+  rawPayload     Json?
+  createdAt      DateTime     @default(now())
+  conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id])
+
+  @@unique([provider, providerMessageId])
+}
+
+model GpsPing {
+  id             String       @id @default(uuid())
+  shipmentId     String
+  latitude       Decimal      @db.Decimal(10, 7)
+  longitude      Decimal      @db.Decimal(10, 7)
+  speedKph       Decimal?     @db.Decimal(8, 2)
+  headingDegrees Decimal?     @db.Decimal(6, 2)
+  accuracyMeters Decimal?     @db.Decimal(8, 2)
+  batteryPercent Int?
+  capturedAt     DateTime
+  receivedAt     DateTime     @default(now())
+  shipment       Shipment     @relation(fields: [shipmentId], references: [id])
+
+  @@index([shipmentId, capturedAt])
+}
+
+model EtaSnapshot {
+  id             String       @id @default(uuid())
+  shipmentId     String
+  targetStopId   String?
+  etaAt          DateTime
+  distanceKmRemaining Decimal @db.Decimal(12, 2)
+  confidence     Decimal      @db.Decimal(5, 4)
+  modelVersion   String       @default("eta-v1")
+  calculatedAt   DateTime     @default(now())
+  shipment       Shipment     @relation(fields: [shipmentId], references: [id])
+
+  @@index([shipmentId, calculatedAt])
+}
+
+model WorkerScaleRecommendation {
+  id             String       @id @default(uuid())
+  queueName      String
+  waitingJobs    Int
+  activeJobs     Int
+  currentWorkers Int
+  recommendedWorkers Int
+  reason         String
+  createdAt      DateTime     @default(now())
+
+  @@index([queueName, createdAt])
+}
+
+model PlatformMessageThread {
+  id             String       @id @default(uuid())
+  buyerId        String?
+  sellerId       String?
+  orderId        String?
+  status         MessageThreadStatus @default(OPEN)
+  masked         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  buyer          Organization? @relation("BuyerMessageThreads", fields: [buyerId], references: [id])
+  seller         Organization? @relation("SellerMessageThreads", fields: [sellerId], references: [id])
+  messages       PlatformMessage[]
+}
+
+model PlatformMessage {
+  id             String       @id @default(uuid())
+  threadId       String
+  senderOrganizationId String?
+  body           String
+  sanitizedBody  String
+  riskScore      Decimal      @default(0) @db.Decimal(5, 4)
+  blocked        Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  thread         PlatformMessageThread @relation(fields: [threadId], references: [id])
+
+  @@index([threadId, createdAt])
+  @@index([blocked, riskScore])
+}
+
+model EventOutbox {
+  id             String       @id @default(uuid())
+  topic          String
+  payload        Json
+  status         EventOutboxStatus @default(PENDING)
+  idempotencyKey String       @unique
+  correlationId  String?
+  causationId    String?
+  attempts       Int          @default(0)
+  nextRetryAt    DateTime?
+  publishedAt    DateTime?
+  lastError      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status, nextRetryAt])
+}
+
+model DomainEventStore {
+  id             String       @id @default(uuid())
+  streamId       String
+  streamType     String
+  eventName      String
+  eventVersion   Int
+  sequence       BigInt
+  payload        Json
+  metadata       Json?
+  correlationId  String?
+  causationId    String?
+  occurredAt     DateTime     @default(now())
+  recordedAt     DateTime     @default(now())
+
+  @@unique([streamId, sequence])
+  @@index([streamType, eventName, occurredAt])
+  @@index([correlationId])
+}
+
+model EventReplayCheckpoint {
+  id             String       @id @default(uuid())
+  consumerName   String       @unique
+  lastSequence   BigInt       @default(0)
+  replayedAt     DateTime?
+  metadata       Json?
+  updatedAt      DateTime     @updatedAt
+}
+
+model IntegrationWebhook {
+  id             String       @id @default(uuid())
+  provider       String
+  eventType      String?
+  signatureValid Boolean      @default(false)
+  payload        Json
+  processedAt    DateTime?
+  createdAt      DateTime     @default(now())
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  actorUserId    String?
+  action         String
+  entityType     String
+  entityId       String
+  before         Json?
+  after          Json?
+  correlationId  String?
+  createdAt      DateTime     @default(now())
+  actor          User?        @relation(fields: [actorUserId], references: [id])
+}
+
+model ContactPolicyViolation {
+  id             String       @id @default(uuid())
+  organizationId String?
+  type           ContactPolicyViolationType
+  status         ContactPolicyViolationStatus @default(OPEN)
+  source         String
+  evidence       Json
+  riskScore      Decimal      @db.Decimal(5, 4)
+  detectedAt     DateTime     @default(now())
+  reviewedAt     DateTime?
+  resolutionNote String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([status, riskScore, detectedAt])
+}
