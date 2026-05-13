@@ -12,7 +12,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "vitest run"
+    "test": "vitest run",
+    "fly:setup": "./scripts/fly-setup-secrets.sh",
+    "fly:deploy": "./scripts/fly-deploy.sh"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
