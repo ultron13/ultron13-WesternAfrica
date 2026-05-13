@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import type { InputJsonValue } from "@prisma/client/runtime/library";
 import type { LedgerPostingLine, LedgerRepository } from "../../application/finance/ledger-service.js";
 import { ledgerPostingsTotal } from "../observability/metrics.js";
 import { prisma } from "../prisma/client.js";
@@ -19,7 +20,7 @@ export class PrismaLedgerRepository implements LedgerRepository {
             reference: line.reference,
             description: line.description,
             idempotencyKey: `${transactionId}:${index}`,
-            metadata: line.metadata
+            metadata: line.metadata as InputJsonValue | undefined
           }
         });
         ledgerPostingsTotal.inc();

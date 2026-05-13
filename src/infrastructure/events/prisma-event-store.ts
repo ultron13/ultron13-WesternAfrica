@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import type { InputJsonValue } from "@prisma/client/runtime/library";
 import type { EventStore, StoredDomainEvent } from "../../domain/events/event-store.js";
 import { prisma } from "../prisma/client.js";
 
@@ -21,8 +22,8 @@ export class PrismaEventStore implements EventStore {
         eventName: event.name,
         eventVersion: event.eventVersion,
         sequence,
-        payload: event.payload,
-        metadata: event.metadata,
+        payload: event.payload as InputJsonValue,
+        metadata: event.metadata as InputJsonValue | undefined,
         correlationId: event.correlationId,
         causationId: event.causationId,
         occurredAt: event.occurredAt

@@ -22,30 +22,6 @@ export interface GpsTrackingRepository {
   }): Promise<void>;
 }
 
-import { EtaEngine, type EtaStop } from "./eta-engine.js";
-
-export interface GpsPingInput {
-  shipmentId: string;
-  latitude: number;
-  longitude: number;
-  speedKph?: number;
-  headingDegrees?: number;
-  accuracyMeters?: number;
-  batteryPercent?: number;
-  capturedAt: Date;
-}
-
-export interface GpsTrackingRepository {
-  savePing(input: GpsPingInput): Promise<void>;
-  saveEta(input: {
-    shipmentId: string;
-    targetStopId: string;
-    etaAt: Date;
-    distanceKmRemaining: number;
-    confidence: number;
-  }): Promise<void>;
-}
-
 export class GpsTrackingService {
   constructor(
     private readonly repository: GpsTrackingRepository,
@@ -56,7 +32,25 @@ export class GpsTrackingService {
   async ingest(input: GpsPingInput, nextStop?: EtaStop) {
     await this.repository.savePing(input);
 
-    const update = {
+    const update: {
+      shipmentId: string;
+      location: {
+        latitude: number;
+        longitude: number;
+        speedKph?: number;
+        headingDegrees?: number;
+        accuracyMeters?: number;
+        batteryPercent?: number;
+      };
+      capturedAt: Date;
+      eta?: {
+        targetStopId: string;
+        etaAt: Date;
+        distanceKmRemaining: number;
+        confidence: number;
+        lateRisk: number;
+      };
+    } = {
       shipmentId: input.shipmentId,
       location: {
         latitude: input.latitude,
